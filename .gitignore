@@ -1,3 +1,13 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Backend
+backend/.env
+__pycache__/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
