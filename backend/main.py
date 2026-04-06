@@ -1,3 +1,4 @@
+import json
 import os
 from contextlib import asynccontextmanager
 
@@ -8,7 +9,6 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from openai import OpenAI
 from pydantic import BaseModel
-from sentence_transformers import SentenceTransformer
 
 from prompts import SOCRATES_SYSTEM_PROMPT
 
@@ -17,71 +17,28 @@ load_dotenv()
 # ---------------------------------------------------------------------------
 # Globals populated on startup
 # ---------------------------------------------------------------------------
-embedder: SentenceTransformer | None = None
 index: faiss.IndexFlatL2 | None = None
 documents: list[dict] = []
 openai_client: OpenAI | None = None
 
-CORPUS_DIR = os.path.join(os.path.dirname(__file__), "..", "corpus", "socrates")
+INDEX_PATH = os.path.join(os.path.dirname(__file__), "faiss_index.bin")
+CHUNKS_PATH = os.path.join(os.path.dirname(__file__), "chunks.json")
+EMBED_MODEL = "text-embedding-3-small"
 TOP_K = 5
-
-
-# ---------------------------------------------------------------------------
-# Corpus loading & indexing (adapted from RAG/RileyBrown_Cerebro_rag_guide.py)
-# ---------------------------------------------------------------------------
-def load_corpus(corpus_dir: str) -> list[dict]:
-    """Load text files and chunk them into ~500-word segments."""
-    docs = []
-    doc_id = 0
-
-    for filename in sorted(os.listdir(corpus_dir)):
-        if not filename.endswith(".txt"):
-            continue
-
-        with open(os.path.join(corpus_dir, filename), "r", encoding="utf-8") as f:
-            raw_text = f.read()
-
-        paragraphs = [p.strip() for p in raw_text.split("\n\n") if p.strip()]
-
-        current_chunk = ""
-        for para in paragraphs:
-            if len((current_chunk + "\n\n" + para).split()) > 500 and current_chunk:
-                docs.append({
-                    "id": f"doc_{doc_id:04d}",
-                    "title": filename.replace(".txt", "").replace("_", " ").title(),
-                    "text": current_chunk.strip(),
-                })
-                doc_id += 1
-                current_chunk = para
-            else:
-                current_chunk += "\n\n" + para if current_chunk else para
-
-        if current_chunk.strip():
-            docs.append({
-                "id": f"doc_{doc_id:04d}",
-                "title": filename.replace(".txt", "").replace("_", " ").title(),
-                "text": current_chunk.strip(),
-            })
-            doc_id += 1
-
-    return docs
-
-
-def build_index(docs: list[dict], model: SentenceTransformer) -> faiss.IndexFlatL2:
-    """Embed all document chunks and build a FAISS index."""
-    texts = [doc["text"] for doc in docs]
-    embeddings = model.encode(texts, show_progress_bar=True).astype("float32")
-    idx = faiss.IndexFlatL2(embeddings.shape[1])
-    idx.add(embeddings)
-    return idx
 
 
 # ---------------------------------------------------------------------------
 # Retrieval
 # ---------------------------------------------------------------------------
+def embed_query(query: str) -> np.ndarray:
+    """Embed a query using OpenAI's embedding API."""
+    resp = openai_client.embeddings.create(model=EMBED_MODEL, input=[query])
+    return np.array([resp.data[0].embedding], dtype="float32")
+
+
 def retrieve(query: str, k: int = TOP_K) -> list[dict]:
     """Embed a query and return the top-k most similar document chunks."""
-    query_vec = embedder.encode([query]).astype("float32")
+    query_vec = embed_query(query)
     distances, indices = index.search(query_vec, k)
     results = []
     for dist, idx in zip(distances[0], indices[0]):
@@ -114,18 +71,16 @@ def build_system_prompt(chunks: list[dict]) -> str:
 # ---------------------------------------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global embedder, index, documents, openai_client
+    global index, documents, openai_client
 
-    print("Loading embedding model...")
-    embedder = SentenceTransformer("all-MiniLM-L6-v2")
+    print(f"Loading FAISS index from {INDEX_PATH}...")
+    index = faiss.read_index(INDEX_PATH)
+    print(f"Index loaded with {index.ntotal} vectors")
 
-    print(f"Loading corpus from {CORPUS_DIR}...")
-    documents = load_corpus(CORPUS_DIR)
+    print(f"Loading chunks from {CHUNKS_PATH}...")
+    with open(CHUNKS_PATH, "r", encoding="utf-8") as f:
+        documents = json.load(f)
     print(f"Loaded {len(documents)} chunks")
-
-    print("Building FAISS index...")
-    index = build_index(documents, embedder)
-    print(f"Index built with {index.ntotal} vectors")
 
     openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 

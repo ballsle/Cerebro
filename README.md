@@ -47,6 +47,16 @@ The frontend runs at `http://localhost:5173` and proxies `/api` requests to the 
 5. Backend sends the full conversation to OpenAI (gpt-4o) and returns the response
 6. Frontend displays the response in the chat
 
+## Rebuilding the index
+
+The FAISS index and chunk metadata (`backend/faiss_index.bin`, `backend/chunks.json`) are pre-built and committed to the repo so the server doesn't need to load any ML models at startup. If the corpus changes, rebuild them locally before deploying:
+
+```bash
+python backend/build_index.py
+```
+
+This reads `corpus/socrates/`, embeds chunks with OpenAI's `text-embedding-3-small`, and writes the two files. Requires `OPENAI_API_KEY` in `backend/.env`.
+
 ## Deployment
 
 - **Backend** deploys to [Render](https://render.com) (Python, free tier) from the `backend/` directory.
