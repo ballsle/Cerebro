@@ -47,6 +47,13 @@ The frontend runs at `http://localhost:5173` and proxies `/api` requests to the 
 5. Backend sends the full conversation to OpenAI (gpt-4o) and returns the response
 6. Frontend displays the response in the chat
 
+## Deployment
+
+- **Backend** deploys to [Render](https://render.com) (Python, free tier) from the `backend/` directory.
+- **Frontend** deploys to [Vercel](https://vercel.com).
+- In the Vercel project settings, set the `VITE_API_URL` environment variable to the Render backend URL (e.g. `https://cerebro-api.onrender.com`). The frontend reads this at build time and points API requests at the Render backend.
+- Locally, `VITE_API_URL` can be left unset — it falls back to `http://localhost:8000`, and the Vite dev server proxy still handles `/api` requests during development.
+
 ## License
 
 All Rights Reserved (c) 2026 Riley Brown
