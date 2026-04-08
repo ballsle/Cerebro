@@ -57,7 +57,7 @@ python backend/build_index.py
 
 This reads `corpus/socrates/`, embeds chunks with OpenAI's `text-embedding-3-small`, and writes the two files. Requires `OPENAI_API_KEY` in `backend/.env`.
 
-## Deployment
+## What I Did For My Deployment
 
 - **Backend** deploys to [Render](https://render.com) (Python, free tier) from the `backend/` directory.
 - **Frontend** deploys to [Vercel](https://vercel.com).
