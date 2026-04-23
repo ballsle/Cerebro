@@ -8,7 +8,7 @@ export async function getPersonaResponse(persona, messages) {
   const res = await fetch(`${API_URL}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({ persona: persona.id, messages }),
   });
 
   if (!res.ok) {

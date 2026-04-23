@@ -2,17 +2,17 @@
 Pre-build the FAISS index and chunk metadata locally.
 
 Run this whenever the corpus changes:
-    python backend/build_index.py
+    python backend/build_index.py socrates
+    python backend/build_index.py aristotle
+    python backend/build_index.py chomsky
 
-It produces two files committed to the repo and shipped to the server:
-    backend/faiss_index.bin   - FAISS index of chunk embeddings
-    backend/chunks.json       - chunk text + title metadata (parallel to index)
-
-Embeddings use OpenAI's text-embedding-3-small so the server can embed
-queries with the same model at request time without loading a local model.
+It produces two files per philosopher:
+    backend/faiss_index_{philosopher}.bin
+    backend/chunks_{philosopher}.json
 """
 import json
 import os
+import sys
 
 import faiss
 import numpy as np
@@ -21,10 +21,7 @@ from openai import OpenAI
 
 load_dotenv()
 
-CORPUS_DIR = os.path.join(os.path.dirname(__file__), "..", "corpus", "socrates")
-INDEX_PATH = os.path.join(os.path.dirname(__file__), "faiss_index.bin")
-CHUNKS_PATH = os.path.join(os.path.dirname(__file__), "chunks.json")
-
+BACKEND_DIR = os.path.dirname(__file__)
 EMBED_MODEL = "text-embedding-3-small"
 EMBED_BATCH = 100
 
@@ -78,15 +75,22 @@ def embed_texts(client: OpenAI, texts: list[str]) -> np.ndarray:
     return np.array(vectors, dtype="float32")
 
 
-def main() -> None:
+def main(philosopher: str) -> None:
+    corpus_dir = os.path.join(BACKEND_DIR, "..", "corpus", philosopher)
+    index_path = os.path.join(BACKEND_DIR, f"faiss_index_{philosopher}.bin")
+    chunks_path = os.path.join(BACKEND_DIR, f"chunks_{philosopher}.json")
+
+    if not os.path.isdir(corpus_dir):
+        raise SystemExit(f"Corpus directory not found: {corpus_dir}")
+
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise SystemExit("OPENAI_API_KEY not set (check backend/.env)")
 
     client = OpenAI(api_key=api_key)
 
-    print(f"Loading corpus from {CORPUS_DIR}...")
-    documents = load_corpus(CORPUS_DIR)
+    print(f"Loading corpus from {corpus_dir}...")
+    documents = load_corpus(corpus_dir)
     print(f"Loaded {len(documents)} chunks")
 
     print(f"Embedding with {EMBED_MODEL}...")
@@ -96,15 +100,17 @@ def main() -> None:
     index = faiss.IndexFlatL2(embeddings.shape[1])
     index.add(embeddings)
 
-    print(f"Writing {INDEX_PATH}")
-    faiss.write_index(index, INDEX_PATH)
+    print(f"Writing {index_path}")
+    faiss.write_index(index, index_path)
 
-    print(f"Writing {CHUNKS_PATH}")
-    with open(CHUNKS_PATH, "w", encoding="utf-8") as f:
+    print(f"Writing {chunks_path}")
+    with open(chunks_path, "w", encoding="utf-8") as f:
         json.dump(documents, f, ensure_ascii=False, indent=2)
 
-    print(f"Done. {len(documents)} chunks indexed.")
+    print(f"Done. {len(documents)} chunks indexed for {philosopher}.")
 
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) != 2:
+        raise SystemExit("Usage: python build_index.py <philosopher>  (e.g. socrates, aristotle, chomsky)")
+    main(sys.argv[1])

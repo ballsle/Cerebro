@@ -10,80 +10,84 @@ from fastapi.middleware.cors import CORSMiddleware
 from openai import OpenAI
 from pydantic import BaseModel
 
-from prompts import SOCRATES_SYSTEM_PROMPT
+from prompts import PERSONA_PROMPTS
 
 load_dotenv()
 
-# ---------------------------------------------------------------------------
-# Globals populated on startup
-# ---------------------------------------------------------------------------
-index: faiss.IndexFlatL2 | None = None
-documents: list[dict] = []
-openai_client: OpenAI | None = None
-
-INDEX_PATH = os.path.join(os.path.dirname(__file__), "faiss_index.bin")
-CHUNKS_PATH = os.path.join(os.path.dirname(__file__), "chunks.json")
+BACKEND_DIR = os.path.dirname(__file__)
 EMBED_MODEL = "text-embedding-3-small"
 TOP_K = 5
 
+# Populated on startup: { philosopher_id: { "index": faiss index, "documents": [...] } }
+persona_data: dict[str, dict] = {}
+openai_client: OpenAI | None = None
 
-# ---------------------------------------------------------------------------
-# Retrieval
-# ---------------------------------------------------------------------------
+PHILOSOPHERS = ["socrates", "aristotle", "chomsky"]
+
+
+def _load_persona(philosopher: str) -> dict | None:
+    index_path = os.path.join(BACKEND_DIR, f"faiss_index_{philosopher}.bin")
+    chunks_path = os.path.join(BACKEND_DIR, f"chunks_{philosopher}.json")
+
+    if not os.path.exists(index_path) or not os.path.exists(chunks_path):
+        print(f"  WARNING: index files not found for '{philosopher}', skipping")
+        return None
+
+    index = faiss.read_index(index_path)
+    with open(chunks_path, "r", encoding="utf-8") as f:
+        documents = json.load(f)
+
+    print(f"  Loaded {philosopher}: {index.ntotal} vectors, {len(documents)} chunks")
+    return {"index": index, "documents": documents}
+
+
 def embed_query(query: str) -> np.ndarray:
-    """Embed a query using OpenAI's embedding API."""
     resp = openai_client.embeddings.create(model=EMBED_MODEL, input=[query])
     return np.array([resp.data[0].embedding], dtype="float32")
 
 
-def retrieve(query: str, k: int = TOP_K) -> list[dict]:
-    """Embed a query and return the top-k most similar document chunks."""
+def retrieve(philosopher: str, query: str, k: int = TOP_K) -> list[dict]:
+    data = persona_data[philosopher]
     query_vec = embed_query(query)
-    distances, indices = index.search(query_vec, k)
+    distances, indices = data["index"].search(query_vec, k)
     results = []
     for dist, idx in zip(distances[0], indices[0]):
-        doc = documents[idx].copy()
+        doc = data["documents"][idx].copy()
         doc["score"] = float(dist)
         results.append(doc)
     return results
 
 
-# ---------------------------------------------------------------------------
-# Prompt building
-# ---------------------------------------------------------------------------
-def build_system_prompt(chunks: list[dict]) -> str:
-    """Combine the Socrates persona prompt with retrieved context."""
+def build_system_prompt(philosopher: str, chunks: list[dict]) -> str:
+    persona_prompt = PERSONA_PROMPTS[philosopher]
     context_block = "\n\n".join(
         f"[{c['title']}]\n{c['text']}" for c in chunks
     )
     return (
-        f"{SOCRATES_SYSTEM_PROMPT}\n\n"
+        f"{persona_prompt}\n\n"
         f"## Reference Material\n"
-        f"Use the following passages from dialogues about your life and teachings "
-        f"to ground your responses. Draw on this context when relevant, but do not "
-        f"fabricate specific quotes or claim to have said things not found here.\n\n"
+        f"Use the following passages from source texts to ground your responses. "
+        f"Draw on this context when relevant, but do not fabricate specific quotes "
+        f"or claim to have said things not found here.\n\n"
         f"=== CONTEXT ===\n{context_block}\n=== END CONTEXT ==="
     )
 
 
-# ---------------------------------------------------------------------------
-# App lifecycle
-# ---------------------------------------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global index, documents, openai_client
+    global openai_client
 
-    print(f"Loading FAISS index from {INDEX_PATH}...")
-    index = faiss.read_index(INDEX_PATH)
-    print(f"Index loaded with {index.ntotal} vectors")
+    print("Loading persona indexes...")
+    for philosopher in PHILOSOPHERS:
+        data = _load_persona(philosopher)
+        if data:
+            persona_data[philosopher] = data
 
-    print(f"Loading chunks from {CHUNKS_PATH}...")
-    with open(CHUNKS_PATH, "r", encoding="utf-8") as f:
-        documents = json.load(f)
-    print(f"Loaded {len(documents)} chunks")
+    if not persona_data:
+        raise RuntimeError("No persona indexes found. Run build_index.py for at least one philosopher.")
 
     openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
+    print(f"Ready. Loaded personas: {list(persona_data.keys())}")
     yield
 
 
@@ -97,15 +101,13 @@ app.add_middleware(
 )
 
 
-# ---------------------------------------------------------------------------
-# Request / response models
-# ---------------------------------------------------------------------------
 class Message(BaseModel):
     role: str
     content: str
 
 
 class ChatRequest(BaseModel):
+    persona: str
     messages: list[Message]
 
 
@@ -113,23 +115,22 @@ class ChatResponse(BaseModel):
     reply: str
 
 
-# ---------------------------------------------------------------------------
-# Endpoint
-# ---------------------------------------------------------------------------
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(req: ChatRequest):
     if not req.messages:
         raise HTTPException(status_code=400, detail="messages array is empty")
 
+    if req.persona not in persona_data:
+        available = list(persona_data.keys())
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown persona '{req.persona}'. Available: {available}",
+        )
+
     latest_user_msg = req.messages[-1].content
+    chunks = retrieve(req.persona, latest_user_msg, k=TOP_K)
+    system_prompt = build_system_prompt(req.persona, chunks)
 
-    # Retrieve relevant chunks
-    chunks = retrieve(latest_user_msg, k=TOP_K)
-
-    # Build system prompt with RAG context
-    system_prompt = build_system_prompt(chunks)
-
-    # Assemble messages for OpenAI
     openai_messages = [{"role": "system", "content": system_prompt}]
     for msg in req.messages:
         openai_messages.append({"role": msg.role, "content": msg.content})

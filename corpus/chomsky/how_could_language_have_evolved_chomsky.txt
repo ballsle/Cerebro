@@ -1,0 +1,55 @@
+How Could Language Have Evolved?
+By Johan J. Bolhuis, Ian Tattersall, Noam Chomsky, Robert C. Berwick
+PLOS Biology, August 26, 2014
+
+Abstract
+
+The paper addresses why language evolution remains enigmatic. Language lacks nonhuman equivalents and lacks consensus about its essential nature. According to the "Strong Minimalist Thesis," the key distinguishing feature is hierarchical syntactic structure. The faculty emerged recently — approximately 70,000–100,000 years ago — and has remained stable since. The core mechanism is a single repeatable operation taking two syntactic elements and combining them into a set {a, b}.
+
+Introduction
+
+The evolution of language is uncontroversial as a fact; disagreement concerns the mechanism. The authors identify two main obstacles: language remains poorly defined, and evolutionary processes are frequently misunderstood. They propose that hierarchical syntactic structure's basic principles align with relatively recent evolutionary emergence.
+
+Conceptualizations of Language
+
+The authors distinguish language from communication, noting that "language should be understood as a particular computational cognitive system, implemented neurally, that cannot be equated with an excessively expansive notion of 'language as communication.'"
+
+Language operates through multiple modalities — speech, sign language, even haptic expression in deaf-blind individuals. Speech and auditory-vocal learning are externalization mechanisms, not the faculty itself. The computational core involves hierarchical syntactic structure.
+
+Comparative Linguistics — Not Much to Compare
+
+No nonhuman species demonstrates human-like language syntax. While songbirds and parrots exhibit vocal learning paralleling human speech acquisition, "to date there is no evidence to suggest that birdsong patterns exhibit the hierarchical syntactic structure that characterizes human language."
+
+The Faculty of Language According to the Strong Minimalist Thesis
+
+The authors describe a remarkably simple underlying principle: a single operation called "merge" that combines exactly two elements a and b into the set {a, b}. This operation can recursively apply to its own outputs, generating infinite hierarchical structures.
+
+Merge explains "displacement" — the apparent movement of phrases within sentences. In "(Guess) what boys eat," the word "what" functions in two positions simultaneously. This phenomenon appears universal in human languages but absent in artificial systems.
+
+The authors note that "merge itself is uniform in the contemporary human population as well as in the historical record," with no documented group differences in language-learning capacity.
+
+The Nature of Evolution
+
+The authors clarify that evolutionary explanation differs fundamentally from mechanistic explanation. Evolution cannot explain cognitive mechanisms; rather, it addresses historical processes. Multiple evolutionary pathways (common descent, convergence, exaptation) may produce similar features.
+
+They emphasize that "evolutionary change can be swift, operating within just a few generations," contradicting assumptions about gradual modification.
+
+Paleoanthropology
+
+Language leaves no direct fossil record. Proposed morphological proxies — brain size, vocal tract anatomy, the FOXP2 gene — are unreliable indicators. The Neanderthal hyoid bone, long considered evidence of speech capacity, remains controversial.
+
+Archaeological evidence provides the best proxy. Symbolic artifacts appear only around 100,000 years ago, substantially after anatomically modern Homo sapiens emerged around 200,000 years ago. This temporal gap suggests that symbolic capacity existed before external expression.
+
+The authors observe that "the tempo of change only began picking up after the point at which symbolic objects appeared," suggesting language triggered cultural acceleration.
+
+The Minimalist Account — Resolving Darwin's Problem
+
+The Strong Minimalist Thesis simplifies evolutionary explanation. Most prerequisite machinery predates human language: distinctive auditory feature perception, efficient computation, and neural substrates. Only merge, specific externalization mechanisms, and atomic conceptual elements (words) were needed.
+
+This narrow focus aligns with rapid emergence. The genomic differences between modern humans and Neanderthals are minimal — "only about 100 coding gene differences," mostly unrelated to language.
+
+Conclusions
+
+The Strong Minimalist Thesis accommodates empirical evidence of recent, rapid language emergence. While remaining speculative, it aligns with genomic data and historical records showing linguistic capacity unchanged for millennia.
+
+The authors conclude that such a novel system would provide substantial competitive advantage, explaining its rapid fixation in early human populations.
