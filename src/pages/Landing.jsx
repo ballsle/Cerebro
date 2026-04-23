@@ -6,18 +6,21 @@ const personas = [
     name: 'Socrates',
     dates: '470–399 BC',
     bio: 'The father of Western philosophy, known for the Socratic method of questioning',
+    image: '/images/socrates.jpg',
   },
   {
     id: 'aristotle',
     name: 'Aristotle',
     dates: '384–322 BC',
     bio: 'Student of Plato who systematized logic, ethics, politics, and natural science',
+    image: '/images/aristotle.jpg',
   },
   {
     id: 'chomsky',
     name: 'Noam Chomsky',
     dates: '1928–',
     bio: 'Founder of modern linguistics and leading critic of power, media, and foreign policy',
+    image: '/images/chomsky.jpg',
   },
 ];
 
