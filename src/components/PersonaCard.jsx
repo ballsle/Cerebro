@@ -1,6 +1,6 @@
 export default function PersonaCard({ persona, onSelect }) {
   return (
-    <div className="w-80 bg-surface-800 border border-surface-600 rounded-lg p-6 hover:border-navy-500/40 transition-colors group">
+    <div className="w-80 bg-surface-800 border border-surface-600 rounded-lg p-6 hover:border-navy-500/40 transition-colors group flex flex-col">
       {/* Icon */}
       <div className="w-16 h-16 rounded-full bg-surface-700 border border-surface-600 flex items-center justify-center mb-4 mx-auto group-hover:border-navy-500/30 transition-colors">
         <span className="text-2xl font-serif font-semibold text-navy-400">
@@ -9,7 +9,7 @@ export default function PersonaCard({ persona, onSelect }) {
       </div>
 
       {/* Info */}
-      <div className="text-center mb-5">
+      <div className="text-center mb-5 flex-1">
         <h3 className="text-xl font-serif font-semibold text-zinc-100 mb-1">
           {persona.name}
         </h3>
